@@ -1,38 +1,46 @@
-version: '3'
 services:
-  db:
-    image: "postgres:9.6.5"
-    volumes:
-      - "dbdata:/var/lib/postgresql/data"
-    env_file:
-      - .env
-    networks:
-      - db_nw
   flaskapp:
-    build: .
+    build:
+      context: .
+    container_name: flask-app
     env_file:
       - .env
-    volumes:
-      - .:/opt/services/flaskapp/src
-    networks:
-      - db_nw
-      - web_nw
+    expose:
+      - "5090"
     depends_on:
       - db
+    networks:
+      - app-net
+    restart: always
+
+  db:
+    image: postgres:17-alpine
+    container_name: postgres-db
+    env_file:
+      - .env
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    networks:
+      - app-net
+    restart: always
+
   nginx:
-    image: "nginx:1.13.5"
+    image: nginx:1.13.5
+    container_name: nginx
     ports:
       - "8080:80"
     volumes:
-      - ./conf.d:/etc/nginx/conf.d
-    networks:
-      - web_nw
-    depends_on: 
+       - ./conf.d:/etc/nginx/conf.d
+    depends_on:
       - flaskapp
+    networks:
+      - app-net
+    restart: always
+
 networks:
-  db_nw:
-    driver: bridge
-  web_nw:
+  app-net:
     driver: bridge
 volumes:
-  dbdata:
+  postgres-data:
